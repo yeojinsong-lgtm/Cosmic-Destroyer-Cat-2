@@ -102,7 +102,7 @@ function defeatEnemy(enemy,allowChuru=true){
   if(enemy.dead)return;
   enemy.dead=true;
   gems.push({x:enemy.x,y:enemy.y,value:enemy.value,kind:enemy.kind,type:"shard"});
-  const churuChance=[0,.12,.24][enemy.kind];
+  const churuChance=[0,.045,.10][enemy.kind];
   if(allowChuru&&Math.random()<churuChance)gems.push({x:enemy.x+10,y:enemy.y-10,value:0,kind:enemy.kind,type:"churu"});
 }
 function churuBlast(){
