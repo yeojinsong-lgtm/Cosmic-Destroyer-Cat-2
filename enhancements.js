@@ -114,6 +114,17 @@ const englishHud=updateHud;updateHud=()=>{englishHud();if(!player)return;const s
 const englishFashion=showFashionUnlock;showFashionUnlock=stage=>{englishFashion(stage);E("fashionDetail").textContent=stage===20?"LV.100 · COSMIC FASHION COMPLETE!":"LV."+(stage*5)+" · FASHION "+stage+" / 20"};
 const lobbyBase=lobby;lobby=()=>{lobbyBase();E("shop").classList.add("hidden");renderLobby()};
 E("lobbyBtn").onclick=lobby;
+
+/* Game-over actions use the enhanced mission and lobby state. */
+const oldRetryButton=E("retry"),retryButton=oldRetryButton.cloneNode(true);
+oldRetryButton.replaceWith(retryButton);
+retryButton.textContent="TRY AGAIN";
+retryButton.onclick=()=>{E("upgrade").classList.add("hidden");E("shop").classList.add("hidden");begin()};
+const gameOverLobby=document.createElement("button");
+gameOverLobby.id="gameOverLobby";gameOverLobby.textContent="LOBBY";
+retryButton.parentNode.insertBefore(gameOverLobby,retryButton.nextSibling);
+gameOverLobby.style.marginLeft="10px";
+gameOverLobby.onclick=()=>{E("upgrade").classList.add("hidden");lobby()};
 renderLobby();
 
 
