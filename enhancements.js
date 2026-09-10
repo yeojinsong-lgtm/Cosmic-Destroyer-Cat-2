@@ -1,36 +1,70 @@
-"use strict";
-const E=id=>document.getElementById(id),S=document.createElement("style");S.textContent='.room{position:relative;height:240px;margin:15px;border:2px solid #7784bb;border-radius:24px;background:#18204a;overflow:hidden}.cat{position:absolute;left:48%;bottom:30px;font-size:70px}.decor{position:absolute;font-size:30px}.currency{color:#fff19b;font-weight:900}.row{display:flex;gap:9px;justify-content:center;flex-wrap:wrap}.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin:15px}.item{padding:12px;border:1px solid #6575a8;border-radius:13px;background:#111733}#shop{display:block;overflow-y:auto;overscroll-behavior:contain;touch-action:pan-y;-webkit-overflow-scrolling:touch;padding:24px 0}#shop.hidden{display:none}#shop .panel{margin:0 auto;max-height:none;overflow:visible}.pbtn{position:fixed;right:18px;bottom:18px;z-index:8}.screen{z-index:10}@media(max-width:600px){.grid{grid-template-columns:1fr}}';document.head.append(S);
-E("start").innerHTML='<div class="panel"><h1>Cosmic Cat Lobby</h1><div class="currency">⭐ STAR TOKENS <span id="tokens">0</span></div><div id="room" class="room"><div id="decor"></div><div id="lobbyCat" class="cat">🐱</div></div><p>Fashion discoveries decorate your spaceship forever.</p><div class="row"><button id="go2">🚀 START MISSION</button><button id="shopBtn">⭐ COSMIC SHOP</button></div></div>';
-document.body.insertAdjacentHTML("beforeend",'<button id="pauseBtn" class="pbtn hidden">Ⅱ MENU</button><div id="pauseMenu" class="screen hidden"><div class="panel"><h1>PAUSED</h1><div class="row"><button id="resumeBtn">RESUME</button><button id="restartBtn">RESTART</button><button id="lobbyBtn">LOBBY</button></div></div></div><div id="shop" class="screen hidden"><div class="panel"><h1>COSMIC SHOP</h1><div class="currency">⭐ <span id="shopTokens">0</span></div><div class="row"><button id="shopBack">← LOBBY</button><button id="shopPlay">🚀 START MISSION</button></div><div class="row"><button data-tab="skin">SKINS</button><button data-tab="theme">THEMES</button><button data-tab="effect">EFFECTS</button></div><div id="shopGrid" class="grid"></div></div></div>');
-let meta={tokens:0,maxFashion:0,owned:["blue","space","star"],skin:"blue",theme:"space",effect:"star"};try{Object.assign(meta,JSON.parse(localStorage.cosmicCatMeta2||"{}"))}catch(e){}const save=()=>localStorage.cosmicCatMeta2=JSON.stringify(meta);
-const I=[["blue","skin","Starlight Blue",0,"🐱"],["gold","skin","Solar Gold",12,"😺"],["void","skin","Void Royal",22,"🐈‍⬛"],["space","theme","Deep Space",0,"🌌"],["pink","theme","Pink Nebula",18,"💜"],["aurora","theme","Aurora Deck",28,"🌈"],["star","effect","Starlight Trail",0,"✨"],["heart","effect","Heart Blaster",15,"💖"],["prism","effect","Prism Power",30,"💫"]].map(x=>({id:x[0],type:x[1],name:x[2],cost:x[3],icon:x[4]}));
-function lobby(){E("tokens").textContent=meta.tokens;E("shopTokens").textContent=meta.tokens;let d=["🪴","🏆","🛋️","🔭","🪐","🎵","💎","👑","🪽","🌟"];E("decor").innerHTML=d.slice(0,Math.ceil(meta.maxFashion/2)).map((x,i)=>'<span class="decor" style="left:'+(4+(i*18)%88)+'%;top:'+(20+(i*41)%155)+'px">'+x+'</span>').join("");E("lobbyCat").textContent=(I.find(x=>x.id===meta.skin)||I[0]).icon;E("room").style.background=meta.theme==="pink"?"#512752":meta.theme==="aurora"?"#0d514d":"#18204a"}
-function shop(t="skin"){E("shopTokens").textContent=meta.tokens;E("shopGrid").innerHTML=I.filter(x=>x.type===t).map(x=>{let o=meta.owned.includes(x.id),q=meta[t]===x.id;return '<div class="item"><div style="font-size:34px">'+x.icon+'</div><b>'+x.name+'</b><p>'+(o?(q?"EQUIPPED":"OWNED"):"⭐ "+x.cost)+'</p><button data-buy="'+x.id+'">'+(q?"✓":o?"EQUIP":"BUY")+'</button></div>'}).join("");document.querySelectorAll("[data-buy]").forEach(b=>b.onclick=()=>{let x=I.find(i=>i.id===b.dataset.buy);if(!meta.owned.includes(x.id)){if(meta.tokens<x.cost)return alert("Not enough Star Tokens!");meta.tokens-=x.cost;meta.owned.push(x.id)}meta[x.type]=x.id;save();shop(t);lobby()})}
-function toggle(){if(!running)return;paused=!paused;E("pauseMenu").classList.toggle("hidden",!paused);if(!paused)last=performance.now()}function home(){running=false;paused=false;["pauseMenu","over","shop"].forEach(x=>E(x).classList.add("hidden"));E("pauseBtn").classList.add("hidden");E("start").classList.remove("hidden");lobby();draw()}
-E("go2").onclick=()=>{begin();E("pauseBtn").classList.remove("hidden")};E("shopBtn").onclick=()=>{E("shop").classList.remove("hidden");E("shop").scrollTop=0;shop()};E("shopBack").onclick=()=>E("shop").classList.add("hidden");E("shopPlay").onclick=()=>{E("shop").classList.add("hidden");begin();E("pauseBtn").classList.remove("hidden")};document.querySelectorAll("[data-tab]").forEach(b=>b.onclick=()=>shop(b.dataset.tab));E("pauseBtn").onclick=toggle;E("resumeBtn").onclick=toggle;E("restartBtn").onclick=()=>{E("pauseMenu").classList.add("hidden");begin()};E("lobbyBtn").onclick=home;addEventListener("keydown",e=>{if(e.code==="Escape")toggle()});
-let F=showFashionUnlock;showFashionUnlock=n=>{F(n);if(n>meta.maxFashion){meta.maxFashion=n;meta.tokens+=2;save()}};let D=defeatEnemy;defeatEnemy=(e,a=true)=>{if(!e.dead&&Math.random()<.018){meta.tokens++;save()}D(e,a)};let Z=endGame;endGame=()=>{let r=Math.max(1,Math.floor(level/6)+Math.floor(elapsed/120));meta.tokens+=r;meta.maxFashion=Math.max(meta.maxFashion,Math.min(20,Math.floor(level/5)));save();Z();E("pauseBtn").classList.add("hidden");E("result").innerHTML+="<br><b>⭐ +"+r+" permanent Star Tokens</b>"};
-addEnemy=()=>{let a=Math.random()*6.283,d=Math.max(width,height)*.7,t=elapsed,p=t>150?5:t>100?4:t>65?3:t>35?2:t>15?1:0,k=Math.floor(Math.random()*(p+1));enemies.push({x:player.x+Math.cos(a)*d,y:player.y+Math.sin(a)*d,r:[11,16,24,13,29,38][k],hp:[22,48,115,72,190,420][k]*(1+t/150),speed:[66,48,32,105,38,27][k]+t*.12,damage:[10,16,23,13,27,36][k],color:["#ff578a","#ffa148","#9867ff","#55efc4","#ff4fd8","#e9e36a"][k],value:[1,2,5,3,8,16][k],kind:Math.min(k,2)})};lobby();
-S.textContent+=' .token-hud{position:fixed;z-index:7;right:20px;top:88px;padding:8px 13px;border:1px solid #fff09a;border-radius:999px;background:#241b43dd;color:#fff19b;font-weight:900;pointer-events:none}.token-pop{position:fixed;z-index:30;left:50%;top:19%;transform:translate(-50%,-50%);padding:12px 19px;border:2px solid #fff2a3;border-radius:18px;background:#332157ee;color:#fff4a9;font-size:22px;font-weight:900;pointer-events:none;opacity:0}.token-pop.show{animation:tokenPop 1.5s ease both}@keyframes tokenPop{0%{opacity:0;transform:translate(-50%,-20%) scale(.7)}18%,70%{opacity:1;transform:translate(-50%,-50%) scale(1.08)}100%{opacity:0;transform:translate(-50%,-90%) scale(.95)}}';
-document.body.insertAdjacentHTML("beforeend",'<div id="tokenHud" class="token-hud hidden">⭐ <span id="runTokens">0</span></div><div id="tokenPop" class="token-pop"></div>');
-let tokenPopTimer=0;
-function tokenFeedback(n,label){if(n<=0)return;E("runTokens").textContent=meta.tokens;let p=E("tokenPop");p.textContent="⭐ +"+n+" STAR TOKEN"+(n===1?"":"S")+" · "+label;clearTimeout(tokenPopTimer);p.classList.remove("show");void p.offsetWidth;p.classList.add("show");tokenPopTimer=setTimeout(()=>p.classList.remove("show"),1500)}
-let tf=showFashionUnlock;showFashionUnlock=n=>{let b=meta.tokens;tf(n);tokenFeedback(meta.tokens-b,"FASHION BONUS")};
-let td=defeatEnemy;defeatEnemy=(e,a=true)=>{let b=meta.tokens;td(e,a);tokenFeedback(meta.tokens-b,"LUCKY DROP")};
-let te=endGame;endGame=()=>{let b=meta.tokens;te();tokenFeedback(meta.tokens-b,"MISSION REWARD");E("tokenHud").classList.add("hidden")};
-let tb=begin;begin=()=>{tb();E("runTokens").textContent=meta.tokens;E("tokenHud").classList.remove("hidden")};E("go2").onclick=()=>{begin();E("pauseBtn").classList.remove("hidden")};
-let th=home;home=()=>{th();E("tokenHud").classList.add("hidden")};E("lobbyBtn").onclick=home;
-I.push(
-{id:"tiger",type:"skin",name:"Nebula Tiger",cost:16,icon:"🐯"},{id:"lion",type:"skin",name:"Solar Lion",cost:26,icon:"🦁"},{id:"robot",type:"skin",name:"Mecha Cat",cost:38,icon:"🤖"},{id:"alien",type:"skin",name:"Alien Kitty",cost:48,icon:"👽"},
-{id:"sunset",type:"theme",name:"Supernova Lounge",cost:14,icon:"🌅"},{id:"moon",type:"theme",name:"Moon Palace",cost:24,icon:"🌙"},{id:"garden",type:"theme",name:"Cosmic Garden",cost:34,icon:"🌌"},{id:"royal",type:"theme",name:"Royal Starship",cost:46,icon:"🏰"},
-{id:"paw",type:"effect",name:"Paw Comets",cost:12,icon:"🐾"},{id:"rainbow",type:"effect",name:"Rainbow Drive",cost:22,icon:"🌈"},{id:"lightning",type:"effect",name:"Thunder Shots",cost:32,icon:"⚡"},{id:"galaxy",type:"effect",name:"Galaxy Bloom",cost:45,icon:"💫"});
-let tl=lobby;lobby=()=>{tl();let c={sunset:"linear-gradient(145deg,#732d55,#f08b61)",moon:"linear-gradient(145deg,#10183e,#6874bd)",garden:"linear-gradient(145deg,#123c39,#315f72)",royal:"linear-gradient(145deg,#3f205c,#b98233)"};if(c[meta.theme])E("room").style.background=c[meta.theme]};
-upgrades.push(
-{id:"paws",name:"Comet Paws",text:"Move 14% faster.",apply:()=>player.move*=1.14},
-{id:"nineLives",name:"Nine Lives",text:"Gain 18 maximum HP and heal 18 HP.",apply:()=>{player.maxHp+=18;player.hp=Math.min(player.maxHp,player.hp+18)}},
-{id:"gravity",name:"Gravity Whiskers",text:"Pull shards in from 55px farther away.",apply:()=>player.magnet+=55},
-{id:"piercing",name:"Piercing Claws",text:"Projectiles pass through 1 more enemy.",apply:()=>player.pierce++},
-{id:"lightSpeed",name:"Light-Speed Yarn",text:"Shots fly 22% faster and grow larger.",apply:()=>{player.bulletSpeed*=1.22;player.bulletSize+=.3}},
-{id:"warp",name:"Warp Tail",text:"Dash recharges 18% faster.",apply:()=>player.dashMax=Math.max(.38,player.dashMax*.82)},
-{id:"reactor",name:"Purr Reactor",text:"Gain 22% damage and 8% attack speed.",apply:()=>{player.damage*=1.22;player.rate/=1.08}},
-{id:"medic",name:"Royal Catnap",text:"Regenerate 22% faster and heal 8 HP.",apply:()=>{player.regenInterval*=.78;player.hp=Math.min(player.maxHp,player.hp+8)}});
-let sr=reset;reset=()=>{sr();["paws","nineLives","gravity","piercing","lightSpeed","warp","reactor","medic"].forEach(id=>player.upgradeLevels[id]=0)};
+﻿"use strict";
+const E=id=>document.getElementById(id), style=document.createElement("style");
+style.textContent=`
+.row{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}.pbtn{position:fixed;right:18px;bottom:18px;z-index:8}.screen{z-index:10}.mission{padding:12px;border:1px solid #53669e;border-radius:14px;background:#0b1028;color:#e7edff}.mission b,.token{color:#ffe36f}.bossbar{height:14px;margin:9px 0;border:2px solid #ffdc71;border-radius:10px;background:#241027;overflow:hidden}.bossfill{height:100%;background:linear-gradient(90deg,#ff4f8b,#ffe36f)}.toast2{position:fixed;z-index:30;left:50%;top:22%;transform:translate(-50%,-50%);padding:14px 22px;border:2px solid #fff0a0;border-radius:16px;background:#30205aee;color:#fff0a0;font-size:20px;font-weight:900;opacity:0;pointer-events:none}.toast2.show{animation:pop 1.6s ease both}@keyframes pop{15%,70%{opacity:1;transform:translate(-50%,-50%) scale(1)}100%{opacity:0;transform:translate(-50%,-90%) scale(.9)}}`;
+document.head.append(style);
+E("start").innerHTML='<div class="panel"><h1>Cosmic Destroyer Cat</h1><div class="mission"><b>MISSION</b> · 5분간 생존한 뒤 보이드 타이탄을 처치하세요.<br>파편을 모아 레벨업하고 매번 새로운 우주 파워를 선택하세요.</div><p>이동: WASD / 방향키 · 워프 대시: SPACE · 자동 공격 · ESC: 일시정지</p><div class="token">★ STAR TOKENS <span id="tokens">0</span></div><div class="row"><button id="go2">미션 시작</button><button id="soundBtn">SOUND ON</button></div></div>';
+document.body.insertAdjacentHTML("beforeend",'<button id="pauseBtn" class="pbtn hidden">MENU</button><div id="pauseMenu" class="screen hidden"><div class="panel"><h1>PAUSED</h1><p>전투가 안전하게 정지되었습니다.</p><div class="row"><button id="resumeBtn">계속하기</button><button id="restartBtn">다시 시작</button><button id="lobbyBtn">로비로</button></div></div></div><div id="bossHud" class="fashion-status hidden" style="top:105px;width:min(420px,70vw)">VOID TITAN<div class="bossbar"><div id="bossFill" class="bossfill"></div></div></div><div id="toast2" class="toast2"></div>');
+let meta={tokens:0,sound:true};try{Object.assign(meta,JSON.parse(localStorage.getItem("cosmicCatMeta3")||"{}"))}catch(e){}
+const save=()=>{try{localStorage.setItem("cosmicCatMeta3",JSON.stringify(meta))}catch(e){}};
+let ac;
+function sound(f=440,d=.06,type="sine"){if(!meta.sound)return;try{ac??=new AudioContext();let o=ac.createOscillator(),g=ac.createGain();o.type=type;o.frequency.value=f;g.gain.setValueAtTime(.035,ac.currentTime);g.gain.exponentialRampToValueAtTime(.001,ac.currentTime+d);o.connect(g).connect(ac.destination);o.start();o.stop(ac.currentTime+d)}catch(e){}}
+function toast(msg){let t=E("toast2");t.textContent=msg;t.classList.remove("show");void t.offsetWidth;t.classList.add("show")}
+function toggle(){if(!running)return;paused=!paused;E("pauseMenu").classList.toggle("hidden",!paused);if(!paused){last=performance.now();sound(520)}}
+function lobby(){running=false;paused=false;["pauseMenu","over","bossHud"].forEach(id=>E(id).classList.add("hidden"));E("pauseBtn").classList.add("hidden");E("start").classList.remove("hidden");E("tokens").textContent=meta.tokens;draw()}
+E("go2").onclick=()=>{begin();E("pauseBtn").classList.remove("hidden")};
+E("pauseBtn").onclick=toggle;E("resumeBtn").onclick=toggle;E("restartBtn").onclick=()=>{E("pauseMenu").classList.add("hidden");begin()};E("lobbyBtn").onclick=lobby;
+E("soundBtn").onclick=()=>{meta.sound=!meta.sound;save();E("soundBtn").textContent=meta.sound?"SOUND ON":"SOUND OFF";sound(600)};
+E("soundBtn").textContent=meta.sound?"SOUND ON":"SOUND OFF";
+addEventListener("keydown",e=>{if(e.code==="Escape")toggle()});
+const oldBegin=begin;begin=()=>{oldBegin();E("pauseBtn").classList.remove("hidden");E("bossHud").classList.add("hidden");sound(620,.12,"triangle")};
+const oldGain=gain;gain=v=>{oldGain(v);sound(720,.035)};
+const oldDefeat=defeatEnemy;defeatEnemy=(enemy,allow=true)=>{const wasBoss=enemy.boss&&!enemy.dead;if(!enemy.dead)sound(wasBoss?100:260,.04,"triangle");oldDefeat(enemy,allow);if(wasBoss)victory()};
+let titan=null,missionWon=false;
+function spawnTitan(){
+  titan={x:width/2,y:-80,r:58,hp:4200,maxHp:4200,speed:31,damage:32,color:"#ff477d",value:60,kind:2,boss:true,dead:false};
+  enemies.push(titan);E("bossHud").classList.remove("hidden");toast("⚠ VOID TITAN INBOUND");sound(90,.7,"sawtooth")
+}
+const baseAddEnemy=addEnemy;
+addEnemy=()=>{
+  if(elapsed>=300){if(!titan&&!missionWon)spawnTitan();return}
+  const a=Math.random()*Math.PI*2,d=Math.max(width,height)*.7,w=Math.min(4,Math.floor(elapsed/60));
+  const data=[
+    {r:11,h:22,s:68,d:10,c:"#ff578a",v:1},
+    {r:16,h:48,s:50,d:15,c:"#ffa148",v:2},
+    {r:12,h:58,s:105,d:12,c:"#55efc4",v:3},
+    {r:25,h:150,s:35,d:23,c:"#9867ff",v:6},
+    {r:21,h:125,s:60,d:20,c:"#ff4fd8",v:5}
+  ][Math.floor(Math.random()*(w+1))];
+  enemies.push({x:player.x+Math.cos(a)*d,y:player.y+Math.sin(a)*d,r:data.r,hp:data.h*(1+elapsed/180),speed:data.s+elapsed*.1,damage:data.d,color:data.c,value:data.v,kind:Math.min(w,2),dead:false})
+};
+function victory(){
+  if(missionWon)return;missionWon=true;running=false;score+=5000;best=Math.max(best,score);let reward=15+Math.floor(level/5);meta.tokens+=reward;save();
+  E("pauseBtn").classList.add("hidden");E("bossHud").classList.add("hidden");E("result").innerHTML="<b>MISSION COMPLETE!</b><br>보이드 타이탄을 격파했습니다.<br>생존 5분 · 레벨 <b>"+level+"</b> · 점수 <b>"+score+"</b><br><span class='token'>★ +"+reward+" STAR TOKENS</span>";
+  E("over").querySelector("h1").textContent="VICTORY";E("over").classList.remove("hidden");sound(880,.8,"triangle")
+}
+const baseUpdate=update;
+update=dt=>{
+  baseUpdate(dt);
+  if(titan&&!titan.dead){
+    E("bossFill").style.width=Math.max(0,titan.hp/titan.maxHp*100)+"%";
+    if(titan.hp<=0){titan.dead=true;victory()}
+  }
+};
+const baseReset=reset;reset=()=>{baseReset();titan=null;missionWon=false};
+const baseEnd=endGame;endGame=()=>{
+  if(missionWon)return;
+  let reward=Math.max(2,Math.floor(score/800));meta.tokens+=reward;save();baseEnd();
+  E("over").querySelector("h1").textContent="MISSION LOST";E("result").innerHTML+="<br><span class='token'>★ +"+reward+" STAR TOKENS</span>";E("pauseBtn").classList.add("hidden")
+};
+const baseDraw=draw;draw=()=>{
+  baseDraw();
+  if(running&&!paused){
+    ctx.save();ctx.textAlign="center";ctx.font="900 14px system-ui";ctx.fillStyle="#ffe36f";ctx.shadowBlur=12;ctx.shadowColor="#ff7b45";
+    const remain=Math.max(0,300-elapsed),m=Math.floor(remain/60),s=String(Math.floor(remain%60)).padStart(2,"0");
+    ctx.fillText(titan?"FINAL BOSS":"TITAN ARRIVAL "+m+":"+s,width/2,125);ctx.restore()
+  }
+};
+E("tokens").textContent=meta.tokens;
+
+
