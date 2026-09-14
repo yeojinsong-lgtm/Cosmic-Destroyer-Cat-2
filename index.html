@@ -24,7 +24,7 @@
 const canvas=document.getElementById("game");
 const ctx=canvas.getContext("2d");
 const el=id=>document.getElementById(id);
-const keys={};
+const keys={}; let frameId=0;
 let width,height,scale=window.devicePixelRatio||1;
 let player,enemies,bullets,gems,running=false,paused=false,last=0,elapsed=0,spawnTimer=0,score=0,level=1,xp=0,xpNeed=8,best=0;
 try{best=Number(localStorage.getItem("starBest")||0)}catch(error){}
@@ -56,7 +56,7 @@ function reset(){
 }
 function begin(){
   el("start").classList.add("hidden");el("over").classList.add("hidden");
-  reset();requestAnimationFrame(loop);
+  cancelAnimationFrame(frameId);reset();frameId=requestAnimationFrame(loop);
 }
 el("go").addEventListener("click",begin);
 el("retry").addEventListener("click",begin);
@@ -134,17 +134,18 @@ function update(dt){
   bullets.forEach(b=>{b.x+=b.vx*dt;b.y+=b.vy*dt});
   bullets=bullets.filter(b=>b.x>-30&&b.x<width+30&&b.y>-30&&b.y<height+30&&!b.dead);
   enemies.forEach(enemy=>{
+    if(enemy.dead||!running)return;
     const angle=Math.atan2(player.y-enemy.y,player.x-enemy.x);
     enemy.x+=Math.cos(angle)*enemy.speed*dt;enemy.y+=Math.sin(angle)*enemy.speed*dt;
     if(Math.hypot(enemy.x-player.x,enemy.y-player.y)<enemy.r+player.r&&player.invincible<=0){
-      player.hp-=enemy.damage;player.invincible=.7;if(player.hp<=0)endGame();
+      player.hp-=enemy.damage;player.invincible=.7;if(player.hp<=0){endGame();return;}
     }
     if(player.shieldLevel&&Math.hypot(enemy.x-player.x,enemy.y-player.y)<enemy.r+player.shieldRadius){
       enemy.hp-=player.shieldDamage*dt;
       if(enemy.hp<=0)defeatEnemy(enemy);
     }
     bullets.forEach(bullet=>{
-      if(!bullet.dead&&Math.hypot(enemy.x-bullet.x,enemy.y-bullet.y)<enemy.r+bullet.r){
+      if(!enemy.dead&&!bullet.dead&&Math.hypot(enemy.x-bullet.x,enemy.y-bullet.y)<enemy.r+bullet.r){
         enemy.hp-=bullet.damage;
         if(bullet.pierce>0)bullet.pierce--;else bullet.dead=true;
         if(enemy.hp<=0)defeatEnemy(enemy);
@@ -155,7 +156,7 @@ function update(dt){
   gems.forEach(gem=>{
     const distance=Math.hypot(player.x-gem.x,player.y-gem.y);
     if(distance<player.magnet){const angle=Math.atan2(player.y-gem.y,player.x-gem.x),speed=distance<35?500:220;gem.x+=Math.cos(angle)*speed*dt;gem.y+=Math.sin(angle)*speed*dt}
-    if(distance<19){gem.dead=true;if(gem.type==="churu")churuBlast();else gain(gem.value)}
+    if(running&&distance<19){gem.dead=true;if(gem.type==="churu")churuBlast();else gain(gem.value)}
   });
   gems=gems.filter(gem=>!gem.dead);updateHud();
 }
@@ -232,9 +233,9 @@ function endGame(){
 function loop(now){
   if(!running)return;
   const dt=Math.min(.033,(now-last)/1000);last=now;
-  if(!paused)update(dt);draw();requestAnimationFrame(loop);
+  if(!paused)update(dt);draw();if(running)frameId=requestAnimationFrame(loop);
 }
 draw();
-if(location.hash==="#autostart")begin();
+
 </script>
-<script src="enhancements.js"></script></body></html>
+<script src="enhancements.js"></script><script src="galaxy.js"></script></body></html>
