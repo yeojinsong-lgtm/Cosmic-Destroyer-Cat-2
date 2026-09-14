@@ -82,9 +82,9 @@ function rebalance(){
 const descriptions={blasters:"Add a spread shot; total volley damage +20% of base (shared between shots).",meteor:"Volley damage +24% of base. No exponential stacking.",rapid:"Fire rate +22% of base.",healing:"Heal 30 HP, gain 12 max HP and regenerate faster.",butler:"Aura gains 18 damage/sec and 9 range; first rank unlocks the aura."};
 upgrades.forEach(u=>{u.text=descriptions[u.id];u.apply=()=>{if(u.id==="healing"){player.maxHp+=12;player.hp=Math.min(player.maxHp,player.hp+30)}}});
 showUpgrade=()=>{
- if(!running)return;paused=true;E("pauseMenu").classList.add("hidden");const choices=upgrades.filter(u=>player.upgradeLevels[u.id]<8).sort(()=>Math.random()-.5).slice(0,3);
+ if(!running)return;paused=true;E("pauseMenu").classList.add("hidden");const available=upgrades.filter(u=>player.upgradeLevels[u.id]<8);const choices=(available.length?available.concat(endlessPowers).sort(()=>Math.random()-.5).slice(0,3):[...endlessPowers]);
  if(!choices.length){player.hp=Math.min(player.maxHp,player.hp+20);paused=false;return}
- E("cards").innerHTML="";choices.forEach(u=>{const b=document.createElement("button");b.className="card";b.innerHTML=`<b>${u.name}</b><small>Rank ${player.upgradeLevels[u.id]+1} / 8</small>${u.text}`;b.onclick=()=>{u.apply();player.upgradeLevels[u.id]++;rebalance();E("upgrade").classList.add("hidden");paused=false;last=performance.now();sound(960,.16,"triangle");updateHud()};E("cards").append(b)});E("upgrade").classList.remove("hidden");sound(800,.15);
+ E("cards").innerHTML="";choices.forEach(u=>{const b=document.createElement("button");b.className="card";b.innerHTML=`<b>${u.name}</b><small>Rank ${(player.upgradeLevels[u.id]||0)+1} / ${u.endless?'∞':8}</small>${u.text}`;b.onclick=()=>{u.apply();player.upgradeLevels[u.id]=(player.upgradeLevels[u.id]||0)+1;rebalance();E("upgrade").classList.add("hidden");paused=false;last=performance.now();sound(960,.16,"triangle");updateHud()};E("cards").append(b)});E("upgrade").classList.remove("hidden");sound(800,.15);
 };
 gain=v=>{xp+=v;score+=v*10;sound(680,.025);updateHud()};
 const balancedReset=reset;reset=()=>{balancedReset();titansDefeated=0;hazards=[];particles=[];attackClock=4;burstClock=0;runPaid=false;rebalance();E("upgrade").classList.add("hidden");E("pauseMenu").classList.add("hidden")};
@@ -112,9 +112,9 @@ function finish(win){
 victory=()=>finish(true);endGame=()=>finish(false);
 defeatEnemy=(enemy,allow=true)=>{
  if(enemy.dead||!running)return;enemy.dead=true;for(let i=0;i<8;i++)particles.push({x:enemy.x,y:enemy.y,vx:(Math.random()-.5)*160,vy:(Math.random()-.5)*160,life:.5,color:stage().color});
+ if(Math.random()<.03)gems.push({x:enemy.x+10,y:enemy.y,type:"churu",kind:0,value:0});
  if(enemy.boss){titansDefeated++;hazards=[];titan=null;E("bossHud").classList.add("hidden");player.hp=Math.min(player.maxHp,player.hp+40);if(titansDefeated===3){victory();return}toast(`TITAN ${titansDefeated}/3 DEFEATED · +40 HP`);sound(650,.3,"triangle")}
  gems.push({x:enemy.x,y:enemy.y,value:enemy.value,kind:enemy.kind,type:"shard"});
- if(allow&&!enemy.boss&&Math.random()<.025)gems.push({x:enemy.x+10,y:enemy.y,type:"churu",kind:0,value:0});
 };
 churuBlast=()=>{enemies.forEach(e=>{if(e.x<0||e.x>width||e.y<0||e.y>height)return;if(e.boss){e.hp-=e.maxHp*.06;if(e.hp<=0)defeatEnemy(e,false)}else defeatEnemy(e,false)});sound(160,.3,"sawtooth");toast("CHURU BURST · Titans take 6% damage")};
 // Use the original simulation once; the earlier single-Titan wrapper is superseded.
@@ -146,11 +146,7 @@ function plant(e){
 }
 draw=()=>{
  const bg=ctx.createRadialGradient(width*.5,height*.4,0,width*.5,height*.4,Math.max(width,height));bg.addColorStop(0,stage().bg);bg.addColorStop(1,"#060917");ctx.fillStyle=bg;ctx.fillRect(0,0,width,height);
- ctx.save();ctx.globalAlpha=.15;const px=width*.8,py=height*.3,pr=Math.min(width,height)*.28;orb(ctx,px,py,pr,stage().color);ctx.strokeStyle=stage().color;ctx.lineWidth=3;
- if(stageIndex===6||stageIndex===7){for(let i=0;i<4;i++){ctx.beginPath();ctx.ellipse(px,py,pr*(1.3+i*.07),pr*.32,stageIndex===7?1.2:-.4,0,7);ctx.stroke()}}
- if([2,5,8].includes(stageIndex)){ctx.save();ctx.beginPath();ctx.arc(px,py,pr,0,7);ctx.clip();for(let i=-3;i<=3;i++){ctx.fillStyle=i%2?"#211f42":"#e3bfa2";ctx.fillRect(px-pr,py+i*pr*.25,pr*2,pr*.1)}ctx.restore()}
- if([1,4].includes(stageIndex)){for(let i=0;i<7;i++)orb(ctx,px+Math.sin(i*5)*pr*.6,py+Math.cos(i*3)*pr*.6,pr*(.08+i*.009),"#413344")}
- if(stageIndex===3){for(let i=0;i<6;i++){ctx.fillStyle="#6dbfa2";ctx.beginPath();ctx.ellipse(px+Math.sin(i*4)*pr*.5,py+Math.cos(i*3)*pr*.6,pr*.28,pr*.15,i,0,7);ctx.fill()}}ctx.restore();
+ if(typeof planetBackdrop === "function")planetBackdrop();
  stars.forEach(s=>{ctx.fillStyle="#c7d9ef";ctx.fillRect(s.x*width,(s.y*height+elapsed*3)%height,s.r,s.r)});if(!player)return;
  gems.forEach(g=>{ctx.save();ctx.translate(g.x,g.y);if(g.type==="churu"){ctx.fillStyle="#ff8cc7";ctx.fillRect(-5,-12,10,24);ctx.fillStyle="#fff1d6";ctx.fillRect(-6,-12,12,4)}else{const n=5+(g.kind||0)*2;ctx.fillStyle=["#78e8ff","#ffe393","#d3afff"][g.kind||0];ctx.beginPath();ctx.ellipse(0,0,n*1.3,n*.7,0,0,7);ctx.fill();ctx.beginPath();ctx.moveTo(-n,0);ctx.lineTo(-n*2,-n*.7);ctx.lineTo(-n*2,n*.7);ctx.fill();orb(ctx,n*.65,-1,1,"#172342")}ctx.restore()});
  bullets.forEach(b=>{orb(ctx,b.x,b.y,b.r,meta.effect==='heart'?"#ff9acb":meta.effect==='prism'?`hsl(${elapsed*100%360} 90% 80%)`:"#e1ffff")});
